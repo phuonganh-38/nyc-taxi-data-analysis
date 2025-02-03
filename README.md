@@ -55,3 +55,13 @@ The dataset for this project is provided by the New York City Taxi and Limousine
 - **Predictive Modeling**: Develop Linear Regression and Random Forest with the goal of helping stakeholders in understanding fare dynamics and optimizing pricing strategies
 
 
+## **Data Cleaning**
+
+### Remove trips finishing before starting time
+
+```python
+df_green = df_green.filter(df_green['lpep_dropoff_datetime'] >= df_green['lpep_pickup_datetime'])
+
+df_yellow = df_yellow.filter(df_yellow['tpep_dropoff_datetime'] >= df_yellow['tpep_pickup_datetime'])
+```
+
