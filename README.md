@@ -85,15 +85,27 @@ df_yellow = df_yellow.filter((col('tpep_pickup_timestamp') >= valid_start_date) 
 
 #### Remove trips with negative speed
 
-- Import unix_timestamp package
+- Import unix_timestamp package:
 ```python
 from pyspark.sql.functions import unix_timestamp
 ```
-# Calculate trip duration
+- Calculate trip duration:
 ```python
 # green taxi
 df_green = df_green.withColumn('trip_duration', (unix_timestamp(col('lpep_dropoff_timestamp')) - unix_timestamp(col('lpep_pickup_timestamp'))))
 
 # yellow taxi
 df_yellow = df_yellow.withColumn('trip_duration', (unix_timestamp(col('tpep_dropoff_timestamp')) - unix_timestamp(col('tpep_pickup_timestamp'))))
+```
+
+- Remove trips having trip duration <= 0
+```python
+df_green = df_green.filter(col('trip_duration') > 0)
+df_yellow = df_yellow.filter(col('trip_duration') > 0)
+```
+
+- Calculate speed of trips:
+```python
+df_green = df_green.withColumn('speed', col('trip_distance')/(col('trip_duration')/3600))
+df_yellow = df_yellow.withColumn('speed', col('trip_distance')/(col('trip_duration')/3600))
 ```
