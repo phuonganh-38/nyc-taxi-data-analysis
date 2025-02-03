@@ -57,7 +57,7 @@ The dataset for this project is provided by the New York City Taxi and Limousine
 
 ## **Data Cleaning**
 
-#### Remove trips finishing before starting time
+#### Remove trips finishing before starting time:
 
 ```python
 df_green = df_green.filter(df_green['lpep_dropoff_datetime'] >= df_green['lpep_pickup_datetime'])
@@ -66,20 +66,34 @@ df_yellow = df_yellow.filter(df_yellow['tpep_dropoff_datetime'] >= df_yellow['tp
 ```
 
 #### Remove trips where the pickup/dropoff datetime is outside of the range
-Firstly, we need to define the valid datetime range:
+- Firstly, we need to define the valid datetime range:
 ```python
 valid_start_date = '2015-01-01T00:00:00.000+00:00'
 valid_end_date = '2022-12-31T23:59:59.999+00:00'
 ```
 
-Remove trips where the time is outside of the range
+- Then remove trips where the time is outside of the range:
 ```python
-# df_green 
+# green taxi
 df_green = df_green.filter((col('lpep_pickup_timestamp') >= valid_start_date) & (col('lpep_pickup_timestamp') <= valid_end_date) &
                            (col('lpep_dropoff_timestamp') >= valid_start_date) & (col('lpep_dropoff_timestamp') <= valid_end_date))
 
-# df_yellow
+# yellow taxi
 df_yellow = df_yellow.filter((col('tpep_pickup_timestamp') >= valid_start_date) & (col('tpep_pickup_timestamp') <= valid_end_date) &
                              (col('tpep_dropoff_timestamp') >= valid_start_date) & (col('tpep_dropoff_timestamp') <= valid_end_date))
 ```
 
+#### Remove trips with negative speed
+
+- Import unix_timestamp package
+```python
+from pyspark.sql.functions import unix_timestamp
+```
+# Calculate trip duration
+```python
+# green taxi
+df_green = df_green.withColumn('trip_duration', (unix_timestamp(col('lpep_dropoff_timestamp')) - unix_timestamp(col('lpep_pickup_timestamp'))))
+
+# yellow taxi
+df_yellow = df_yellow.withColumn('trip_duration', (unix_timestamp(col('tpep_dropoff_timestamp')) - unix_timestamp(col('tpep_pickup_timestamp'))))
+```
