@@ -180,7 +180,7 @@ df_yellow = df_yellow.filter((col('passenger_count') <= 5) & (col('passenger_cou
 ```
 <br>
 
-The table below shows summary of the mumber of removed records after each step:
+The table below shows a summary of the number of removed records after each step:
 
 
 | Category                                           | Green      | Yellow      |
@@ -192,4 +192,36 @@ The table below shows summary of the mumber of removed records after each step:
 | Trips that are travelling too short or too long (duration wise) | 4,247,231  | 33,383,113 |
 | Trips that are travelling too short or too long (distance wise) | 1,164,131  | 13,082,541 |
 | Trips that have invalid number of passengers     | 2,735,145  | 25,344,371 |
+
+After filtering, the **green** taxi dataset has 57,827,890 records, while the **yellow** taxi dataset has 589,812,060 records.
+
+## **Combine 2 datasets**
+After the cleaning and transformation process, `df_green` and `df_yellow` are merged to create a complete dataset. Since schema of the two datasets are not the same, some steps were handled to make 2 datasets consistent. 
+•	I dropped column `ehail_fee` from `df_green` because most of records in this dataset are null values.
+• Add columns with null values, and rename columns to ensure the columns of both datasets are exactly the same.
+•	A new column named taxi_color was added to both datasets before combining to separate green and yellow taxi cabs later.
+•	`.unionByName()` function was used to combine two datasets.  
+
+```python
+from pyspark.sql.functions import lit
+
+# Drop columns
+df_green = df_green.drop('ehail_fee')
+
+# Add missing columns to 2 datasets
+df_green = (df_green.withColumn('airport_fee', lit(None))
+            .withColumn('taxi_color',lit('green')))
+
+df_yellow = (df_yellow.withColumn('trip_type', lit(None))
+             .withColumn('taxi_color',lit('yellow')))
+
+
+# Rename lpep_pickup_datetime and lpep_dropoff_datetime in df_green 
+df_green = (df_green
+    .withColumnRenamed('lpep_pickup_datetime', 'tpep_pickup_datetime')
+    .withColumnRenamed('lpep_dropoff_datetime', 'tpep_dropoff_datetime')
+    .withColumnRenamed('lpep_pickup_timestamp', 'tpep_pickup_timestamp')
+    .withColumnRenamed('lpep_dropoff_timestamp', 'tpep_dropoff_timestamp'))
+```
+
 
