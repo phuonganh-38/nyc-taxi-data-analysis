@@ -67,14 +67,13 @@ df_yellow = df_yellow.filter(df_yellow['tpep_dropoff_datetime'] >= df_yellow['tp
 <br>
 
 #### Remove trips where the pickup/dropoff datetime is outside of the range
-- Firstly, we need to define the valid datetime range:
+
 ```python
+# Define the valid datetime range
 valid_start_date = '2015-01-01T00:00:00.000+00:00'
 valid_end_date = '2022-12-31T23:59:59.999+00:00'
-```
 
-- Then remove trips where the time is outside of the range:
-```python
+# Remove trips where the time is outside of the range:
 # green taxi
 df_green = df_green.filter((col('lpep_pickup_timestamp') >= valid_start_date) & (col('lpep_pickup_timestamp') <= valid_end_date) &
                            (col('lpep_dropoff_timestamp') >= valid_start_date) & (col('lpep_dropoff_timestamp') <= valid_end_date))
@@ -86,34 +85,26 @@ df_yellow = df_yellow.filter((col('tpep_pickup_timestamp') >= valid_start_date) 
 <br>
 
 #### Remove trips with negative speed
-
-- Import unix_timestamp package:
 ```python
+# Import unix_timestamp package
 from pyspark.sql.functions import unix_timestamp
-```
-- Calculate trip duration:
-```python
-# green taxi
+
+# Calculate trip duration
+## green taxi
 df_green = df_green.withColumn('trip_duration', (unix_timestamp(col('lpep_dropoff_timestamp')) - unix_timestamp(col('lpep_pickup_timestamp'))))
 
-# yellow taxi
+## yellow taxi
 df_yellow = df_yellow.withColumn('trip_duration', (unix_timestamp(col('tpep_dropoff_timestamp')) - unix_timestamp(col('tpep_pickup_timestamp'))))
-```
 
-- Remove trips having trip duration <= 0:
-```python
+# Remove trips having trip duration <= 0:
 df_green = df_green.filter(col('trip_duration') > 0)
 df_yellow = df_yellow.filter(col('trip_duration') > 0)
-```
 
-- Calculate speed of trips:
-```python
+# Calculate speed of trips:
 df_green = df_green.withColumn('speed', col('trip_distance')/(col('trip_duration')/3600))
 df_yellow = df_yellow.withColumn('speed', col('trip_distance')/(col('trip_duration')/3600))
-```
 
-- Then remove trips with negative speed:
-```python
+# Remove trips with negative speed:
 df_green = df_green.filter(col('speed') >= 0)
 df_yellow = df_yellow.filter(col('speed') >= 0)
 ```
@@ -129,8 +120,9 @@ df_yellow = df_yellow.filter(col('speed') <= speed_limit)
 ```
 <br>
 
-#### Remove trips that are either too short or too long
-I use min and max function in Pyspark  to find the minimum and maximum trip durations in the dataset, then set min_duration = 180 (3 minutes) and max_duration = 7200 (2 hours) to filter out trips that are either too short or too long
+#### Remove trips with a *duration* which is either too short or too long 
+I use `min` and `max` function in Pyspark to find the minimum and maximum trip durations in the dataset, then set `min_duration = 180` (3 minutes) and `max_duration` = 7200 (2 hours) to filter out trips that are either too short or too long.
+
 ```python
 from pyspark.sql.functions import min, max
 
@@ -142,3 +134,27 @@ max_duration = 7200 # 2 hours
 df_green = df_green.filter((col('trip_duration') >= min_duration) & (col('trip_duration') <= max_duration))
 df_yellow = df_yellow.filter((col('trip_duration') >= min_duration) & (col('trip_duration') <= max_duration))
 ```
+<br>
+
+#### Remove trips with a *distance* which is either too short or too long 
+Similarly, we use the `min` and `max` functions to identify the shortest and longest trip distances in the dataset, then set `min_distance = 0.5` km and `max_distance = 50` km to filter out trips that are unrealistically short or long.
+
+```python
+# Define min and max distance for a trip
+min_distance = 0.5 
+max_distance = 50 
+
+# Filter too long or too short trips
+df_green = df_green.filter((col('trip_distance') >= min_distance) & (col('trip_distance') <= max_distance))
+df_yellow = df_yellow.filter((col('trip_distance') >= min_distance) & (col('trip_distance') <= max_distance))
+```
+<br>
+
+#### Remove trips with invalid number of passengers
+A taxi cab could carry no more than 5 passengers, so we need to filter out trips with more than 5 passengers due to data errors.
+```python
+df_green = df_green.filter((col('passenger_count') <= 5) & (col('passenger_count') > 0))
+df_yellow = df_yellow.filter((col('passenger_count') <= 5) & (col('passenger_count') > 0))
+```
+<br>
+
