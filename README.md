@@ -436,6 +436,11 @@ FROM trip_statistics
 GROUP BY duration_bin;
 ```
 <br>
+Result:<br>
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/0888634f-b71f-4b51-9fd4-3a9339295c4c" width="1000"/>
+</p>
+<br>
 
 7. Which duration bin will you advise a taxi driver to target to maximise his income?
 ```sql
