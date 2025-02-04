@@ -57,7 +57,7 @@ The dataset for this project is provided by the New York City Taxi and Limousine
 
 ## **Data Cleaning**
 
-#### Remove trips finishing before starting time:
+#### Remove trips finishing before starting time
 
 ```python
 df_green = df_green.filter(df_green['lpep_dropoff_datetime'] >= df_green['lpep_pickup_datetime'])
@@ -84,6 +84,7 @@ df_yellow = df_yellow.filter((col('tpep_pickup_timestamp') >= valid_start_date) 
                              (col('tpep_dropoff_timestamp') >= valid_start_date) & (col('tpep_dropoff_timestamp') <= valid_end_date))
 ```
 <br>
+
 #### Remove trips with negative speed
 
 - Import unix_timestamp package:
@@ -99,7 +100,7 @@ df_green = df_green.withColumn('trip_duration', (unix_timestamp(col('lpep_dropof
 df_yellow = df_yellow.withColumn('trip_duration', (unix_timestamp(col('tpep_dropoff_timestamp')) - unix_timestamp(col('tpep_pickup_timestamp'))))
 ```
 
-- Remove trips having trip duration <= 0
+- Remove trips having trip duration <= 0:
 ```python
 df_green = df_green.filter(col('trip_duration') > 0)
 df_yellow = df_yellow.filter(col('trip_duration') > 0)
@@ -110,3 +111,21 @@ df_yellow = df_yellow.filter(col('trip_duration') > 0)
 df_green = df_green.withColumn('speed', col('trip_distance')/(col('trip_duration')/3600))
 df_yellow = df_yellow.withColumn('speed', col('trip_distance')/(col('trip_duration')/3600))
 ```
+
+- Then remove trips with negative speed:
+```python
+df_green = df_green.filter(col('speed') >= 0)
+df_yellow = df_yellow.filter(col('speed') >= 0)
+```
+<br>
+
+- Remove trips with excessively high speed
+Set the speed limit as 55 km/h then remove trips having speed higher than the speed limit
+
+```python
+speed_limit = 55
+df_green = df_green.filter(col('speed') <= speed_limit)
+df_yellow = df_yellow.filter(col('speed') <= speed_limit)
+```
+<br>
+
