@@ -3,21 +3,21 @@
 
 ## **Introduction**
 The project focuses on data processing and analysis using Databricks Spark, with the primary goal of leveraging Apache Spark to conduct a comprehensive analysis of a high-volume dataset. It aims to analyse a large dataset from New York City taxi trips by loading, transforming, and performing detailed analysis to derive valuable insights and predictions. Throughout the project, Databricks is utilised as a core platform to process and manipulate data, with the dataset stored in Microsoft Azure Blob Storage. Additionally, various tools and technologies are employed to process and transform data, including Python, PySpark, and Spark SQL. After being ingested from Azure, the dataset undergoes extensive cleaning to remove unrealistic records, then be explored using Spark SQL to extract insights into taxi operations, trip patterns, and passenger behaviour. By the end of the project, Spark ML pipelines will be used to build and train predictive models, with performance evaluated against a baseline to ensure accuracy in predicting trip totals.
-
+<br>
 
 ## **Key objectives**
 The primary goal of the project is to conduct a comprehensive analysis of a large dataset using Apache Spark, with a focus on data ingestion, transformation, machine learning model development for predicting profound findings.
-
+<br>
 
 ## **Project workflow**
 Dataset acquisition → Set up Azure Blob storage (create storage account and container) → Upload dataset to Azure → Ingest data to Databricks → Explore and manipulate data → Develop Machine Learning models
-
+<br>
 
 ## **Dataset**
 The dataset for this project is provided by the New York City Taxi and Limousine Commission (TLC), a company which has been responsible for managing license and regulating New York City’s taxis since 1971. The dataset comprises
 16 parquet files,representing taxi data from 2015 to 2022 of two types of taxis cabs: yellow and green taxis, and a [location data](taxi_zone_lookup.csv). The dataset for taxi cabs can be downloaded from the following links:
 
-### **Yellow taxi**
+#### **Yellow taxi**
 - [yellow_taxi_2015.parquet](https://drive.google.com/file/d/1owWyJDNTWyLT0ln2iK5ulkmSYvXZ7qkf/view)
 - [yellow_taxi_2016.parquet](https://drive.google.com/file/d/1OdIcvpyFH1YXn9SNHc8YEuVFAYQpxCUw/view)
 - [yellow_taxi_2017.parquet](https://drive.google.com/file/d/1rtEhtit_2rKvWgutXNIpSWPk3vuE6q8r/view)
@@ -27,7 +27,7 @@ The dataset for this project is provided by the New York City Taxi and Limousine
 - [yellow_taxi_2021.parquet](https://drive.google.com/file/d/1eTs-ID9A3ZgYy0BotrEKwh9ThRAt8dfu/view)
 - [yellow_taxi_2022.parquet](https://drive.google.com/file/d/1QdBDxHQzffBZ26T3j6Uhk1eJ8EmF0bCN/view)
 
-### **Green taxi**
+#### **Green taxi**
 - [green_taxi_2015.parquet](https://drive.google.com/file/d/137oXWkqBOQcxmgHynPv6Wh_fHUqN40n3/view)
 - [green_taxi_2016.parquet](https://drive.google.com/file/d/1s0drAVqulJ_hE4RRqMSNJWyQGF6RKAtA/view)
 - [green_taxi_2017.parquet](https://drive.google.com/file/d/1-VpjWArKPEdjzlTZxI7aPwd8UsVfc2bL/view)
@@ -36,7 +36,7 @@ The dataset for this project is provided by the New York City Taxi and Limousine
 - [green_taxi_2020.parquet](https://drive.google.com/file/d/1umIMHrqaqagZYqvLLf-OzidnDPwxIY5j/view)
 - [green_taxi_2021.parquet](https://drive.google.com/file/d/1ISKrR97II-zWR7f2_boFcyfsNgsj8K1Y/view)
 - [green_taxi_2022.parquet](https://drive.google.com/file/d/1ysXV_4hB3Ex43k1HOvCi8RCT1k7GZANj/view)
-
+<br>
 
 ## **Tools used**
 - Microsoft Azure
@@ -45,7 +45,7 @@ The dataset for this project is provided by the New York City Taxi and Limousine
 - Python
 - Pyspark
 - SparkSQL
-
+<br>
 
 ## **Features**
 - **Large-scale data handling**: Efficient processing of a massive dataset with approximately 800 million records, leveraging the distributed computing power of Apache Spark on Databricks
@@ -53,12 +53,23 @@ The dataset for this project is provided by the New York City Taxi and Limousine
 - **End-to-End workflow in Databricks**
 - **Data cleaning and transformation**: Comprehensive data cleaning and transformation pipelines implemented using PySpark, ensuring high-quality data for analysis and modeling
 - **Predictive Modeling**: Develop Linear Regression and Random Forest with the goal of helping stakeholders in understanding fare dynamics and optimizing pricing strategies
-
+<br>
 
 ## **Data Cleaning**
 
 #### Remove trips finishing before starting time
+One necessary step in the data cleaning process was ensuring that all recorded taxi trips had valid time sequences, specifically that the drop-off time occurred after the pickup time. Any trips having the drop-off timestamp was recorded earlier than the pickup timestamp are logically inconsistent. To handle this issue, the following steps are applied:
+- Convert datetime to timestamp: The pickup and drop-off datetime were initially in string format in both the yellow and green taxi datasets. These features were converted to timestamp format using `to_timepstamp()` function.
+```python
+# Convert pickup and dropoff datetime columns from string to timestamp
+df_green = df_green.withColumn('lpep_pickup_timestamp', to_timestamp(col('lpep_pickup_datetime'), 'yyyy-MM-dd HH:mm:ss'))
+df_green = df_green.withColumn('lpep_dropoff_timestamp', to_timestamp(col('lpep_dropoff_datetime'), 'yyyy-MM-dd HH:mm:ss'))
 
+df_yellow = df_yellow.withColumn('tpep_pickup_timestamp', to_timestamp(col('tpep_pickup_datetime'), 'yyyy-MM-dd HH:mm:ss'))
+df_yellow = df_yellow.withColumn('tpep_dropoff_timestamp', to_timestamp(col('tpep_dropoff_datetime'), 'yyyy-MM-dd HH:mm:ss'))
+```
+
+- A filter was applied to remove any trips where drop-off time occurred before pickup time
 ```python
 df_green = df_green.filter(df_green['lpep_dropoff_datetime'] >= df_green['lpep_pickup_datetime'])
 
@@ -85,11 +96,11 @@ df_yellow = df_yellow.filter((col('tpep_pickup_timestamp') >= valid_start_date) 
 <br>
 
 #### Remove trips with negative speed
-```python
-# Import unix_timestamp package
-from pyspark.sql.functions import unix_timestamp
+To handle this cleaning step, I first converted pickup and drop-off datetime to UNIX timestamp format. The reason for this transformation would be that UNIX timestamp represent time as the number of seconds, which make it easier for computing. This package was imported using the code `pyspark.sql.functions unix_timestamp`
 
-# Calculate trip duration
+```python
+# New columns called `trip_duration` were generated in both datasets by calculating the difference between `pickup_timestamp` and `dropoff_timestamp`
+
 ## green taxi
 df_green = df_green.withColumn('trip_duration', (unix_timestamp(col('lpep_dropoff_timestamp')) - unix_timestamp(col('lpep_pickup_timestamp'))))
 
