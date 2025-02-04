@@ -1,18 +1,16 @@
 # **New York City Taxi Data Analysis**
----
+<br>
 
 ## **Introduction**
-The project focuses on data processing and analysis using Databricks Spark, with the primary goal of leveraging Apache Spark to conduct a comprehensive analysis of a high-volume dataset. It aims to analyse a large dataset from New York City taxi trips by loading, transforming, and performing detailed analysis to derive valuable insights and predictions. Throughout the project, Databricks is utilised as a core platform to process and manipulate data, with the dataset stored in Microsoft Azure Blob Storage. Additionally, various tools and technologies are employed to process and transform data, including Python, PySpark, and Spark SQL. After being ingested from Azure, the dataset undergoes extensive cleaning to remove unrealistic records, then be explored using Spark SQL to extract insights into taxi operations, trip patterns, and passenger behaviour. By the end of the project, Spark ML pipelines will be used to build and train predictive models, with performance evaluated against a baseline to ensure accuracy in predicting trip totals. 
+The project focuses on data processing and analysis using Databricks Spark, with the primary goal of leveraging Apache Spark to conduct a comprehensive analysis of a high-volume dataset. It aims to analyse a large dataset from New York City taxi trips by loading, transforming, and performing detailed analysis to derive valuable insights and predictions. Throughout the project, Databricks is utilised as a core platform to process and manipulate data, with the dataset stored in Microsoft Azure Blob Storage. Additionally, various tools and technologies are employed to process and transform data, including Python, PySpark, and Spark SQL. After being ingested from Azure, the dataset undergoes extensive cleaning to remove unrealistic records, then be explored using Spark SQL to extract insights into taxi operations, trip patterns, and passenger behaviour. By the end of the project, Spark ML pipelines will be used to build and train predictive models, with performance evaluated against a baseline to ensure accuracy in predicting trip totals.<br>
 <br>
-
 
 ## **Key objectives**
-The primary goal of the project is to conduct a comprehensive analysis of a large dataset using Apache Spark, with a focus on data ingestion, transformation, machine learning model development for predicting profound findings.
+The primary goal of the project is to conduct a comprehensive analysis of a large dataset using Apache Spark, with a focus on data ingestion, transformation, machine learning model development for predicting profound findings.<br>
 <br>
 
-
 ## **Project workflow**
-Dataset acquisition → Set up Azure Blob storage (create storage account and container) → Upload dataset to Azure → Ingest data to Databricks → Explore and manipulate data → Develop Machine Learning models
+Dataset acquisition → Set up Azure Blob storage (create storage account and container) → Upload dataset to Azure → Ingest data to Databricks → Explore and manipulate data → Develop Machine Learning models <br>
 <br>
 
 
@@ -50,7 +48,6 @@ The dataset for this project is provided by the New York City Taxi and Limousine
 - Pyspark
 - SparkSQL
 <br>
-
 
 ## **Features**
 - **Large-scale data handling**: Efficient processing of a massive dataset with approximately 800 million records, leveraging the distributed computing power of Apache Spark on Databricks
@@ -193,14 +190,15 @@ The table below shows a summary of the number of removed records after each step
 | Trips that are travelling too short or too long (distance wise) | 1,164,131  | 13,082,541 |
 | Trips that have invalid number of passengers     | 2,735,145  | 25,344,371 |
 
-After filtering, the **green** taxi dataset has 57,827,890 records, while the **yellow** taxi dataset has 589,812,060 records.
+After filtering, the **green** taxi dataset has 57,827,890 records, while the **yellow** taxi dataset has 589,812,060 records.<br>
+<br>
 
-## **Combine 2 datasets**
-After the cleaning and transformation process, `df_green` and `df_yellow` are merged to create a complete dataset. Since schema of the two datasets are not the same, some steps were handled to make 2 datasets consistent. 
-•	I dropped column `ehail_fee` from `df_green` because most of records in this dataset are null values.
-• Add columns with null values, and rename columns to ensure the columns of both datasets are exactly the same.
-•	A new column named taxi_color was added to both datasets before combining to separate green and yellow taxi cabs later.
-•	`.unionByName()` function was used to combine two datasets.  
+## **Combine taxi datasets**
+After the cleaning and transformation process, `df_green` and `df_yellow` are merged to create a complete dataset called `data`. Since the schemas of two datasets are not the same, some steps were handled to make 2 datasets consistent. 
+  •	I dropped column `ehail_fee` from `df_green` because most of records in this dataset are null values.
+  • Add columns with null values, and rename columns to ensure the columns of both datasets are exactly the same.
+  •	A new column named taxi_color was added to both datasets before combining to separate green and yellow taxi cabs later.
+  •	`.unionByName()` function was used to combine two datasets.  
 
 ```python
 from pyspark.sql.functions import lit
@@ -210,18 +208,185 @@ df_green = df_green.drop('ehail_fee')
 
 # Add missing columns to 2 datasets
 df_green = (df_green.withColumn('airport_fee', lit(None))
-            .withColumn('taxi_color',lit('green')))
+                    .withColumn('taxi_color',lit('green')))
 
 df_yellow = (df_yellow.withColumn('trip_type', lit(None))
-             .withColumn('taxi_color',lit('yellow')))
+                      .withColumn('taxi_color',lit('yellow')))
 
 
 # Rename lpep_pickup_datetime and lpep_dropoff_datetime in df_green 
-df_green = (df_green
-    .withColumnRenamed('lpep_pickup_datetime', 'tpep_pickup_datetime')
-    .withColumnRenamed('lpep_dropoff_datetime', 'tpep_dropoff_datetime')
-    .withColumnRenamed('lpep_pickup_timestamp', 'tpep_pickup_timestamp')
-    .withColumnRenamed('lpep_dropoff_timestamp', 'tpep_dropoff_timestamp'))
+df_green = (df_green.withColumnRenamed('lpep_pickup_datetime', 'tpep_pickup_datetime')
+                    .withColumnRenamed('lpep_dropoff_datetime', 'tpep_dropoff_datetime')
+                    .withColumnRenamed('lpep_pickup_timestamp', 'tpep_pickup_timestamp')
+                    .withColumnRenamed('lpep_dropoff_timestamp', 'tpep_dropoff_timestamp'))
+
+# Merge the dataframes
+data = df_yellow.unionByName(df_green)
+```
+<br>
+
+## **Combine taxi dataset with the location data**
+The [location data]((taxi_zone_lookup.csv)) contains location ID and information about borough, zone, and service_zone. There are two locations in each trip, pick up location and drop off location. Therefore, we need to join the `taxi_zone_lookup` table twice:
+- First join: to get location details for pickup (`PULocationID`)
+- Second join: to get location details for dropoff (`DOLocationID`)
+
+The problem is that if we join the same table twice without giving them different names, it would be confused. Therefore, it is necessary to use `alias()` to create 2 separate references to the `taxi_zone_lookup` table.
+
+```python
+# Alias the dataframes to differentiate between pickup and dropoff joins
+lookup_pu = taxi_zone_lookup.alias('lookup_pu')
+lookup_do = taxi_zone_lookup.alias('lookup_do')
+
+# Left join for pickup location
+df_with_pu = data.join(
+                      lookup_pu,
+                      data['PULocationID'] == lookup_pu['LocationID'],
+                      how='left'
+                      ).withColumnRenamed('Borough', 'PUBorough') \
+                       .withColumnRenamed('Zone', 'PUZone') \
+                       .withColumnRenamed('service_zone', 'PUservice_zone')
+
+# Left join for drop-off location
+df_final = df_with_pu.join(
+                          lookup_do,
+                          df_with_pu['DOLocationID'] == lookup_do['LocationID'],
+                          how='left'
+                          ).withColumnRenamed('Borough', 'DOBorough') \
+                           .withColumnRenamed('Zone', 'DOZone') \
+                           .withColumnRenamed('service_zone', 'DOservice_zone')
+
+# Drop any unnecessary columns
+df_final = df_final.drop(lookup_pu['LocationID']).drop(lookup_do['LocationID'])
+```
+<br>
+
+## **Explore and analyze NYC taxi data**
+To use Spark SQL queries, **temporary view** is required. `createOrReplaceTempView()` was used to create a `data_table` from the combined dataframe of previous step.
+```sql
+df_final.createOrReplaceTempView('data_table')
+```
+<br>
+
+Query all records from the temporary view and store in a new dataframe `table`:
+```sql
+table = spark.sql('SELECT * FROM data_table')
+```
+<br>
+
+Separate the dataframe into green and yellow:
+```sql
+green = table.filter(table.taxi_color == 'green')
+yellow = table.filter(table.taxi_color == 'yellow')
+```
+<br>
+
+Create temporary views and tables for both green and yellow data
+```sql
+green.createOrReplaceTempView('green_table')
+green = spark.sql('SELECT * FROM green_table')
+
+yellow.createOrReplaceTempView('yellow_table')
+yellow = spark.sql('SELECT * FROM yellow_table')
+```
+<br>
+
+1. For each **year and month**, select:
+    - Total number of trips
+    - Day of the week with the most trips
+    - Hour of the day with the most trips
+    - The average number of passengers
+    - The average amount paid per trip
+    - The average amount paid per passenger
+
+```sql
+SELECT
+  DATE_FORMAT(tpep_pickup_datetime, 'yyyy-MM') AS year_month,
+  COUNT(*) AS total_trips,
+  DATE_FORMAT(tpep_pickup_datetime, 'EEEE') AS day_of_week,
+  HOUR(tpep_pickup_datetime) AS hour_of_day,
+  AVG(passenger_count) AS avg_passenger,
+  AVG(total_amount) AS avg_total_amount,
+  AVG(total_amount / passenger_count) AS avg_amount_per_passenger
+FROM data_table
+GROUP BY year_month, day_of_week, hour_of_day
+ORDER BY year_month, total_trips DESC
+```
+<br>
+
+2. For each **taxi color**, select the average, median, minimum and maximum
+    - Trip duration in minutes
+    - Trip distance in km
+    - Speed in km per hour
+
+```sql
+SELECT
+    ROUND(AVG(trip_duration/60), 2) AS avg_trip_duration,
+    ROUND(PERCENTILE(trip_duration/60,0.5),2) AS median_trip_duration,
+    ROUND(MIN(trip_duration/60), 2) AS min_trip_duration,
+    ROUND(MAX(trip_duration/60), 2) AS max_trip_duration,
+    ROUND(AVG(trip_distance*1.60934), 2) AS avg_distance_km,
+    ROUND(PERCENTILE(trip_distance*1.60934, 0.5), 2) AS median_distance_km,
+    ROUND(MIN(trip_distance*1.60934), 2) AS min_distance_km,
+    ROUND(MAX(trip_distance*1.60934), 2) AS max_distance_km,
+    ROUND(AVG((trip_distance*1.60934) / (trip_duration/3600)), 2) AS avg_speed_kmph,
+    ROUND(PERCENTILE((trip_distance*1.60934) / (trip_duration/3600), 0.5), 2) AS median_speed_kmph,
+    ROUND(MIN((trip_distance*1.60934) / (trip_duration/3600)), 2) AS min_speed_kmph,
+    ROUND(MAX((trip_distance*1.60934) / (trip_duration/3600)), 2) AS max_speed_kmph
+FROM green_table
+```
+<br>
+
+3. For each **taxi color**, each pair of pick up and drop off locations (use boroughs not the id), each month, each day of week and each hours, select:
+    - Total number of trips
+    - Average distance
+    - Average amount paid per trip
+    - Total amount paid
+
+Green taxi
+```sql
+SELECT
+    PUBorough,
+    DOBorough,
+    DATE_FORMAT(tpep_pickup_datetime, 'yyyy-MM') AS year_month,
+    DATE_FORMAT(tpep_pickup_datetime, 'EEEE') AS day_of_week,
+    HOUR(tpep_pickup_datetime) AS hour_of_day,
+    COUNT(*) AS total_trips,
+    ROUND(AVG(trip_distance), 2) AS avg_distance,
+    ROUND(AVG(total_amount), 2) AS avg_amount_per_trip,
+    ROUND(SUM(total_amount), 2) AS total_amount_paid
+FROM green_table
+GROUP BY PUBorough, DOBorough, year_month, day_of_week, hour_of_day
+ORDER BY PUBorough, DOBorough, year_month, day_of_week, hour_of_day
 ```
 
+Yellow taxi
+```sql
+SELECT
+    PUBorough,
+    DOBorough,
+    DATE_FORMAT(tpep_pickup_datetime, 'yyyy-MM') AS year_month,
+    DATE_FORMAT(tpep_pickup_datetime, 'EEEE') AS day_of_week,
+    HOUR(tpep_pickup_datetime) AS hour_of_day,
+    COUNT(*) AS total_trips,
+    ROUND(AVG(trip_distance), 2) AS avg_distance,
+    ROUND(AVG(total_amount), 2) AS avg_amount_per_trip,
+    ROUND(SUM(total_amount), 2) AS total_amount_paid
+FROM yellow_table
+GROUP BY PUBorough, DOBorough, year_month, day_of_week, hour_of_day
+ORDER BY PUBorough, DOBorough, year_month, day_of_week, hour_of_day
+```
+<br>
 
+4. What was the percentage of trips where drivers received tips?
+```sql
+SELECT (COUNT(CASE WHEN tip_amount > 0 THEN 1 END) * 100 / COUNT(*)) AS percentage_trips_with_tips
+FROM data_table;
+```
+<br>
+
+5. For trips where the driver received tips, what was the percentage where the driver
+received tips of at least $5?
+```sql
+SELECT (COUNT(CASE WHEN tip_amount >= 5 THEN 1 END) * 100 / COUNT(*)) AS percentage_trips_with_tips_at_least_5_dollars
+FROM data_table;
+```
