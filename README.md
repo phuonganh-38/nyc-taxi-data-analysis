@@ -119,7 +119,7 @@ df_yellow = df_yellow.filter(col('speed') >= 0)
 ```
 <br>
 
-- Remove trips with excessively high speed
+#### Remove trips with excessively high speed
 Set the speed limit as 55 km/h then remove trips having speed higher than the speed limit
 
 ```python
