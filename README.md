@@ -129,3 +129,16 @@ df_yellow = df_yellow.filter(col('speed') <= speed_limit)
 ```
 <br>
 
+#### Remove trips that are either too short or too long
+I use min and max function in Pyspark  to find the minimum and maximum trip durations in the dataset, then set min_duration = 180 (3 minutes) and max_duration = 7200 (2 hours) to filter out trips that are either too short or too long
+```python
+from pyspark.sql.functions import min, max
+
+# Define min and max duration for a trip
+min_duration = 180 # 3 minutes
+max_duration = 7200 # 2 hours
+
+# Filter too long or too short trips
+df_green = df_green.filter((col('trip_duration') >= min_duration) & (col('trip_duration') <= max_duration))
+df_yellow = df_yellow.filter((col('trip_duration') >= min_duration) & (col('trip_duration') <= max_duration))
+```
