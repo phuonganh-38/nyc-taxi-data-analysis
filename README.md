@@ -179,6 +179,7 @@ df_yellow = df_yellow.filter((col('passenger_count') <= 5) & (col('passenger_cou
 
 The table below shows a summary of the number of removed records after each step:
 
+<div align="center">
 
 | Category                                           | Green      | Yellow      |
 |---------------------------------------------------|------------|------------|
@@ -189,6 +190,9 @@ The table below shows a summary of the number of removed records after each step
 | Trips that are travelling too short or too long (duration wise) | 4,247,231  | 33,383,113 |
 | Trips that are travelling too short or too long (distance wise) | 1,164,131  | 13,082,541 |
 | Trips that have invalid number of passengers     | 2,735,145  | 25,344,371 |
+
+</div>
+
 
 After filtering, the **green** taxi dataset has 57,827,890 records, while the **yellow** taxi dataset has 589,812,060 records.<br>
 <br>
@@ -390,3 +394,82 @@ received tips of at least $5?
 SELECT (COUNT(CASE WHEN tip_amount >= 5 THEN 1 END) * 100 / COUNT(*)) AS percentage_trips_with_tips_at_least_5_dollars
 FROM data_table;
 ```
+<br>
+
+6. Classify each trip into bins of durations:
+  - Under 5 Mins
+  - From 5 mins to 10 mins
+  - From 10 mins to 20 mins
+  - From 20 mins to 30 mins
+  - From 30 mins to 60 mins
+  - At least 60 mins
+
+For each bins, calculate:
+  - Average speed
+  - Average distance
+
+```sql
+WITH trip_statistics AS (
+    SELECT
+        CASE
+            WHEN trip_duration < 300 THEN 'Under 5 Mins'
+            WHEN trip_duration >= 300 AND trip_duration < 600 THEN 'From 5 mins to 10 mins'
+            WHEN trip_duration >= 600 AND trip_duration < 1200 THEN 'From 10 mins to 20 mins'
+            WHEN trip_duration >= 1200 AND trip_duration < 1800 THEN 'From 20 mins to 30 mins'
+            WHEN trip_duration >= 1800 AND trip_duration < 3600 THEN 'From 30 mins to 60 mins'
+            ELSE 'At least 60 mins'
+        END AS duration_bin,
+        (trip_distance * 1.60934) / (trip_duration / 3600) AS speed,
+        (trip_distance * 1.60934) / total_amount AS distance_per_dollar,
+        tip_amount
+    FROM data_table
+    WHERE trip_duration > 0
+)
+
+SELECT
+    duration_bin,
+    ROUND((SUM(CASE WHEN tip_amount > 0 THEN 1 ELSE 0 END) * 100 / COUNT(*)), 4) AS percentage_trips_with_tips,
+    ROUND((SUM(CASE WHEN tip_amount >= 5 THEN 1 ELSE 0 END) * 100 / SUM(CASE WHEN tip_amount > 0 THEN 1 ELSE 0 END)), 4) AS percentage_trips_with_tips_at_least_5_dollars,
+    ROUND(AVG(speed), 2) AS avg_speed_kmph,
+    ROUND(AVG(distance_per_dollar), 2) AS avg_distance_per_dollar_kmpd
+FROM trip_statistics
+GROUP BY duration_bin;
+```
+<br>
+
+7. Which duration bin will you advise a taxi driver to target to maximise his income?
+```sql
+WITH trip_statistics AS (
+    SELECT
+        CASE
+            WHEN trip_duration < 300 THEN 'Under 5 Mins'
+            WHEN trip_duration >= 300 AND trip_duration < 600 THEN 'From 5 mins to 10 mins'
+            WHEN trip_duration >= 600 AND trip_duration < 1200 THEN 'From 10 mins to 20 mins'
+            WHEN trip_duration >= 1200 AND trip_duration < 1800 THEN 'From 20 mins to 30 mins'
+            WHEN trip_duration >= 1800 AND trip_duration < 3600 THEN 'From 30 mins to 60 mins'
+            ELSE 'At least 60 mins'
+        END AS duration_bin,
+        (trip_distance * 1.60934) / (trip_duration / 3600) AS speed,
+        (trip_distance * 1.60934) / total_amount AS distance_per_dollar,
+        tip_amount,
+        total_amount, trip_duration
+    FROM data_table
+    WHERE trip_duration > 0
+)
+SELECT
+    duration_bin,
+    SUM(total_amount) AS total_income,
+    SUM(trip_duration)/3600 AS total_trip_hours,
+    SUM(total_amount) / (SUM(trip_duration)/3600) AS avg_income_per_hours
+FROM trip_statistics
+GROUP BY duration_bin;
+```
+<br>
+Result:<br>
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/d9ee434c-9a15-4e25-9667-98b858dd0f01" width="800" alt="question7" >
+</p>
+
+Based on the query results above, although trips within the `Under 5 Mins` duration bin generate less total income overall, they yield the highest earnings per hour, which is key for a driver aiming to maximize efficiency. Therefore, a taxi driver should target the `Under 5 Mins` trip.
+
