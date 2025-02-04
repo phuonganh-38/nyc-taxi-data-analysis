@@ -64,6 +64,7 @@ df_green = df_green.filter(df_green['lpep_dropoff_datetime'] >= df_green['lpep_p
 
 df_yellow = df_yellow.filter(df_yellow['tpep_dropoff_datetime'] >= df_yellow['tpep_pickup_datetime'])
 ```
+<br>
 
 #### Remove trips where the pickup/dropoff datetime is outside of the range
 - Firstly, we need to define the valid datetime range:
@@ -82,7 +83,7 @@ df_green = df_green.filter((col('lpep_pickup_timestamp') >= valid_start_date) & 
 df_yellow = df_yellow.filter((col('tpep_pickup_timestamp') >= valid_start_date) & (col('tpep_pickup_timestamp') <= valid_end_date) &
                              (col('tpep_dropoff_timestamp') >= valid_start_date) & (col('tpep_dropoff_timestamp') <= valid_end_date))
 ```
-
+<br>
 #### Remove trips with negative speed
 
 - Import unix_timestamp package:
