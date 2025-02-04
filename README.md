@@ -72,7 +72,6 @@ df_yellow = df_yellow.withColumn('tpep_dropoff_timestamp', to_timestamp(col('tpe
 - A filter was applied to remove any trips where drop-off time occurred before pickup time
 ```python
 df_green = df_green.filter(df_green['lpep_dropoff_datetime'] >= df_green['lpep_pickup_datetime'])
-
 df_yellow = df_yellow.filter(df_yellow['tpep_dropoff_datetime'] >= df_yellow['tpep_pickup_datetime'])
 ```
 <br>
@@ -107,22 +106,23 @@ df_green = df_green.withColumn('trip_duration', (unix_timestamp(col('lpep_dropof
 ## yellow taxi
 df_yellow = df_yellow.withColumn('trip_duration', (unix_timestamp(col('tpep_dropoff_timestamp')) - unix_timestamp(col('tpep_pickup_timestamp'))))
 
-# Remove trips having trip duration <= 0:
+# Remove trips having trip duration <= 0
 df_green = df_green.filter(col('trip_duration') > 0)
 df_yellow = df_yellow.filter(col('trip_duration') > 0)
 
-# Calculate speed of trips:
+# Calculate speed of trips
 df_green = df_green.withColumn('speed', col('trip_distance')/(col('trip_duration')/3600))
 df_yellow = df_yellow.withColumn('speed', col('trip_distance')/(col('trip_duration')/3600))
 
-# Remove trips with negative speed:
+# Remove trips with negative speed
 df_green = df_green.filter(col('speed') >= 0)
 df_yellow = df_yellow.filter(col('speed') >= 0)
 ```
 <br>
 
 #### Remove trips with excessively high speed
-Set the speed limit as 55 km/h then remove trips having speed higher than the speed limit
+Within New York City, the limit speed limit is 55 mph. I first defined a variable called speed_limit and assign it a value of 55, then remove trips having speed higher than the speed limit.
+
 
 ```python
 speed_limit = 55
@@ -132,7 +132,12 @@ df_yellow = df_yellow.filter(col('speed') <= speed_limit)
 <br>
 
 #### Remove trips with a *duration* which is either too short or too long 
-I use `min` and `max` function in Pyspark to find the minimum and maximum trip durations in the dataset, then set `min_duration = 180` (3 minutes) and `max_duration` = 7200 (2 hours) to filter out trips that are either too short or too long.
+Both extremely short and extremely long trips may lead to data errors since it can influence average trip duration, trip distance predictions, etc. Therefore, removing trips which have
+too long or too short duration is an important cleaning step. To handle this issue, the following steps are applied:
+- I first checked the minimum and maximum duration of two datasets, then I counted the number of trips which were longer than 7200-second drive to ensure not to
+remove a huge amount of dataset. The result showed that only 370 thousand trips were recorded to last longer than 7200 seconds (2 hours) out of a total of over 66
+million trips, hence, setting the duration limits of 2 hours may not have a significant impact on the quality of dataset.
+- Define the minimum trip duration as 180 seconds (3 minutes) and define the maximum trip duration as 7200 seconds (2 hours). Any trip outside this range will be removed.
 
 ```python
 from pyspark.sql.functions import min, max
@@ -148,7 +153,7 @@ df_yellow = df_yellow.filter((col('trip_duration') >= min_duration) & (col('trip
 <br>
 
 #### Remove trips with a *distance* which is either too short or too long 
-Similarly, we use the `min` and `max` functions to identify the shortest and longest trip distances in the dataset, then set `min_distance = 0.5` km and `max_distance = 50` km to filter out trips that are unrealistically short or long.
+Similarly, I use the `min` and `max` functions to identify the shortest and longest trip distances in the dataset, then set `min_distance = 0.5` mph and `max_distance = 50` mph to filter out trips that are unrealistically short or long.
 
 ```python
 # Define min and max distance for a trip
