@@ -2,17 +2,16 @@
 <br>
 
 ## **Introduction**
-The project focuses on data processing and analysis using Databricks Spark, with the primary goal of leveraging Apache Spark to conduct a comprehensive analysis of a high-volume dataset. It aims to analyse a large dataset from New York City taxi trips by loading, transforming, and performing detailed analysis to derive valuable insights and predictions. Throughout the project, Databricks is utilised as a core platform to process and manipulate data, with the dataset stored in Microsoft Azure Blob Storage. Additionally, various tools and technologies are employed to process and transform data, including Python, PySpark, and Spark SQL. After being ingested from Azure, the dataset undergoes extensive cleaning to remove unrealistic records, then be explored using Spark SQL to extract insights into taxi operations, trip patterns, and passenger behaviour. By the end of the project, Spark ML pipelines will be used to build and train predictive models, with performance evaluated against a baseline to ensure accuracy in predicting trip totals.<br>
+The project focuses on data processing and analysis using Databricks Spark, with the primary goal of leveraging Apache Spark to conduct a comprehensive analysis of a high-volume dataset. It aims to analyse a large dataset from New York City taxi trips by loading, transforming, and performing detailed analysis to derive valuable insights and predictions. Throughout the project, Databricks is utilised as a core platform to process and manipulate data, with the dataset stored in Microsoft Azure Blob Storage. Additionally, various tools and technologies are employed to process and transform data, including Python, PySpark, and Spark SQL. After being ingested from Azure, the dataset undergoes extensive cleaning to remove unrealistic records, then be explored using Spark SQL to extract insights into taxi operations, trip patterns, and passenger behaviour.<br>
 <br>
 
 ## **Key objectives**
-The primary goal of the project is to conduct a comprehensive analysis of a large dataset using Apache Spark, with a focus on data ingestion, transformation, machine learning model development for predicting profound findings.<br>
+The primary goal of the project is to conduct a comprehensive analysis of a large dataset using Apache Spark, with a focus on data ingestion, and transformation to get profound findings.<br>
 <br>
 
 ## **Project workflow**
-Dataset acquisition → Set up Azure Blob storage (create storage account and container) → Upload dataset to Azure → Ingest data to Databricks → Explore and manipulate data → Develop Machine Learning models <br>
+Dataset acquisition → Set up Azure Blob storage (create storage account and container) → Upload dataset to Azure → Ingest data to Databricks → Explore and manipulate data <br>
 <br>
-
 
 ## **Dataset**
 The dataset for this project is provided by the New York City Taxi and Limousine Commission (TLC), a company which has been responsible for managing license and regulating New York City’s taxis since 1971. The dataset comprises
@@ -54,7 +53,6 @@ The dataset for this project is provided by the New York City Taxi and Limousine
 - **Integration with Azure Blob Storage**: Seamless integration with Azure Blob Storage as the primary storage solution for managing.
 - **End-to-End workflow in Databricks**
 - **Data cleaning and transformation**: Comprehensive data cleaning and transformation pipelines implemented using PySpark, ensuring high-quality data for analysis and modeling
-- **Predictive Modeling**: Develop Linear Regression and Random Forest with the goal of helping stakeholders in understanding fare dynamics and optimizing pricing strategies
 <br>
 
 ## **Data Cleaning**
@@ -386,8 +384,7 @@ ORDER BY PUBorough, DOBorough, year_month, day_of_week, hour_of_day
 SELECT (COUNT(CASE WHEN tip_amount > 0 THEN 1 END) * 100 / COUNT(*)) AS percentage_trips_with_tips
 FROM data_table;
 ```
-
-  Answer: The percentage of trips where drivers received tips is **64.4%**.
+→ Answer: The percentage of trips where drivers received tips is **64.4%**.
 <br>
 
 5. For trips where the driver received tips, what was the percentage where the driver
@@ -396,7 +393,7 @@ received tips of at least $5?
 SELECT (COUNT(CASE WHEN tip_amount >= 5 THEN 1 END) * 100 / COUNT(*)) AS percentage_trips_with_tips_at_least_5_dollars
 FROM data_table;
 ```
-  Answer: **8.2%** tips were at least $5.
+→ Answer: **8.2%** tips were at least $5.
 <br>
 
 6. Classify each trip into bins of durations:
