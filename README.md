@@ -386,6 +386,8 @@ ORDER BY PUBorough, DOBorough, year_month, day_of_week, hour_of_day
 SELECT (COUNT(CASE WHEN tip_amount > 0 THEN 1 END) * 100 / COUNT(*)) AS percentage_trips_with_tips
 FROM data_table;
 ```
+
+  Answer: The percentage of trips where drivers received tips is **64.4%**.
 <br>
 
 5. For trips where the driver received tips, what was the percentage where the driver
@@ -394,6 +396,7 @@ received tips of at least $5?
 SELECT (COUNT(CASE WHEN tip_amount >= 5 THEN 1 END) * 100 / COUNT(*)) AS percentage_trips_with_tips_at_least_5_dollars
 FROM data_table;
 ```
+  Answer: **8.2%** tips were at least $5.
 <br>
 
 6. Classify each trip into bins of durations:
